@@ -1,3 +1,5 @@
+import csv
+#import lxml.html
 import re
 import urlparse
 import urllib2
@@ -5,7 +7,7 @@ import robotparser
 from datetime import datetime
 import time
 import Queue
-
+from bs4 import BeautifulSoup
 
 class Throttle:
     """Add a delay between downloads to the same domain
@@ -71,7 +73,7 @@ def get_links(html):
 
 
 def link_crawler(seed_url, link_regex, delay=5, max_depth=-1, max_urls=-1, headers=None, user_agent='wswp', proxy=None,
-                 num_retries=1):
+                 num_retries=1,scrape_callback=None):
     """Crawl from the given seed URL following links matched by link_regex
     """
     # the queue of URL's that still need to be crawled
@@ -94,6 +96,10 @@ def link_crawler(seed_url, link_regex, delay=5, max_depth=-1, max_urls=-1, heade
             throttle.wait(url)
             html = download(url, headers, proxy=proxy, num_retries=num_retries)
             links = []
+
+            if scrape_callback:
+                links.extend(scrape_callback(url, html) or [])
+
             depth = seen[url]
             if depth != max_depth:
                 # can still crawl further
@@ -141,5 +147,28 @@ def same_domain(url1,url2):
     return urlparse.urlparse(url1).netloc == urlparse.urlparse(url2).netloc
 
 
+class ScrapeCallback:
+    def __init__(self):
+        self.writer = csv.writer(open('countries.csv', 'w'))
+        self.fields = ('area', 'population', 'iso', 'country', 'capital', 'continent', 'tld', 'currency_code',
+                       'currency_name', 'phone', 'postal_code_format', 'postal_code_regex', 'languages', 'neighbours')
+        self.writer.writerow(self.fields)
+
+    def __call__(self, url, html):
+        if re.search('/view/', url):
+            soup = BeautifulSoup(html)
+            row = []
+
+            for field in self.fields:
+                tr = soup.find(attrs={'id': 'places_'+field+"__row"})
+                td = tr.find(attrs={'class': "w2p_fw"})
+                aim = td.text
+                row.append(aim)
+            #for field in self.fields:
+            #    row.append(tree.cssselect('table > tbody > tr#places_{}__row > td.w2p_fw'.format(field))[0].text_content())
+            #print row
+            self.writer.writerow(row)
+
+
 if __name__ == '__main__':
-    link_crawler('http://example.webscraping.com','/(places/default/index|places/default/view)', max_depth=1)
+    link_crawler('http://example.webscraping.com/', '/places/default/view', scrape_callback=ScrapeCallback())
