@@ -9,6 +9,7 @@ import time
 import Queue
 from bs4 import BeautifulSoup
 
+
 class Throttle:
     """Add a delay between downloads to the same domain
     """
@@ -163,6 +164,8 @@ class ScrapeCallback:
                 tr = soup.find(attrs={'id': 'places_'+field+"__row"})
                 td = tr.find(attrs={'class': "w2p_fw"})
                 aim = td.text
+
+                aim = soup.find_all('tr')
                 row.append(aim)
             #for field in self.fields:
             #    row.append(tree.cssselect('table > tbody > tr#places_{}__row > td.w2p_fw'.format(field))[0].text_content())

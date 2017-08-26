@@ -1,4 +1,4 @@
-import re
+from bs4 import BeautifulSoup
 import urllib2
 def download(url, user_agent = 'wswp', num_retries=2):
     print 'Downloading:', url
