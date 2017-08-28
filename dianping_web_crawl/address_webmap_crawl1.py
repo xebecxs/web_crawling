@@ -10,8 +10,8 @@ import json
 def input_domain(url):
     urls = []
     count = 0
-    f = csv.writer(open('东关街3.csv', 'w'))
-    for i in range(1,2):
+    f = csv.writer(open('东关街2.csv', 'w'))
+    for i in range(1,51):
         urls = crawl_catalog(url + str(i), urls)
         print str(i) + ' is ok.'
     for each in urls:
@@ -21,7 +21,7 @@ def input_domain(url):
         print str(count) + ' have done.'
 
 
-def crawl_catalog(url,urls):
+def crawl_catalog(url, urls):
     # download the catalog html
     html = download(url)
     # extract the shop links
@@ -33,18 +33,15 @@ def crawl_catalog(url,urls):
     return urls
 
 
-def download(url, user_agent='wswp', num_retries=2):
-    headers = {'User-agent': user_agent}
-    request = urllib2.Request(url,headers=headers)
+def download(url):
+    req = urllib2.Request(url)
     try:
-        html = urllib2.urlopen(request).read()
-    except urllib2.URLError as e:
-        print "Download error:", e.reason
-        html = None
-        if num_retries>0:
-            if hasattr(e, 'code') and 500 <= e.code < 600:
-                # retry 5XX HTTP errors
-                return download(url,user_agent,num_retries-1)
+        html = urllib2.urlopen(req).read()
+    except urllib2.HTTPError,e:
+        print e.code
+        print e.reason
+        print e.geturl()
+        print e.read()
     return html
 
 
@@ -52,7 +49,7 @@ def download_coor(url):
 
     coor = urllib2.urlopen(url)
     js = json.loads(coor.read())
-    return (js['result']['location']['lat'],js['result']['location']['lng'])
+    return [js['result']['location']['lat'],js['result']['location']['lng']]
 
 
 
@@ -62,13 +59,13 @@ def select_info(url,f,each):
 
     # The content that we need
     shop_number = each
-
+    print '1'
     shop_id_html = soup.select('.breadcrumb > span')
     try:
 
         shop_id = ((shop_id_html[0]).string).encode("gb18030")
 
-        shop_address = (soup.find('span',{'itemprop':'street-address'}).string.strip()).encode('gb18030')
+        shop_address = ((soup.find('span',{'itemprop':'street-address'}).string).strip()).encode('gb18030')
 
         address = urllib2.quote('扬州市广陵区'+ (soup.find('span',{'itemprop':'street-address'}).string).encode('utf-8'))
         shop_coor = download_coor('http://apis.map.qq.com/ws/geocoder/v1/?address=%s&key=FY5BZ-NCLWP-REDDA-LAH6F-IKYOV-EWFA4' % address)
